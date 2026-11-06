@@ -1,0 +1,8 @@
+import { prices, transportRequests, vehicles } from '../seed/demoData.js';
+export function findMatches({cropCode,destinationMarketId,pickupDistrict,readyDate,additionalRequests=[]}) {
+  const compatible=[...transportRequests,...additionalRequests].filter(request=>request.cropCode===cropCode && request.destinationMarketId===destinationMarketId && request.status==='OPEN' && (!pickupDistrict || request.pickupDistrict.toLowerCase()===pickupDistrict.toLowerCase()) && (!readyDate || request.readyDate===readyDate));
+  const totalQuantityQuintals=compatible.reduce((sum,request)=>sum+(Number(request.quantityQuintals)||0),0);
+  const vehicle=compatible.length ? vehicles.find(item=>item.capacityQuintals>=totalQuantityQuintals) : null;
+  const destinationMarket=prices.find(price=>price.marketId===destinationMarketId)?.market || 'Selected market';
+  return {destinationMarket,requests:compatible.map(({farmerId,...safe})=>safe),totalQuantityQuintals,vehicle:vehicle||null,estimatedShares:vehicle&&totalQuantityQuintals>0?compatible.filter(request=>request.quantityQuintals>0).map(request=>({requestId:request.id,quantityQuintals:request.quantityQuintals,estimatedShare:Number((vehicle.estimatedCost*request.quantityQuintals/totalQuantityQuintals).toFixed(2)),confirmed:request.confirmed})):[],status:vehicle?'PROPOSED':'FORMING',message:vehicle?'Demo proposal only. Each farmer must confirm before the group is committed.':'No suitable shared vehicle found yet.'};
+}
